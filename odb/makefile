@@ -131,7 +131,8 @@ h,$(win32_headers),$(filter-out $h,$(subst $(src_base)/,,$(shell find \
 $(src_base)/details/win32 -name '*.hxx' -o -name '*.ixx' -o -name '*.txx'))))
 
 $(dist): data_dist := details/config-vc.h
-$(dist): export extra_dist := $(data_dist) libodb-vc9.vcproj \
+$(dist): export extra_dist := $(data_dist) \
+libodb-vc8.vcproj libodb-vc9.vcproj \
 libodb-vc10.vcxproj libodb-vc10.vcxproj.filters \
 libodb-vc11.vcxproj libodb-vc11.vcxproj.filters
 $(dist): export interface_version = $(shell sed -e \
@@ -142,6 +143,7 @@ $(dist):
 $(win32_threads_sources) $(win32_dll_sources) $(headers) \
 $(posix_threads_headers) $(win32_headers) $(win32_threads_headers) \
 $(data_dist) details/config.h.in)
+	$(call meta-vc8proj,$(src_base)/libodb-vc8.vcproj)
 	$(call meta-vc9proj,$(src_base)/libodb-vc9.vcproj)
 	$(call meta-vc10proj,$(src_base)/libodb-vc10.vcxproj)
 	$(call meta-vc11proj,$(src_base)/libodb-vc11.vcxproj)
@@ -169,6 +171,7 @@ endif
 # How to.
 #
 $(call include,$(bld_root)/dist.make)
+$(call include,$(bld_root)/meta/vc8proj.make)
 $(call include,$(bld_root)/meta/vc9proj.make)
 $(call include,$(bld_root)/meta/vc10proj.make)
 $(call include,$(bld_root)/meta/vc11proj.make)
