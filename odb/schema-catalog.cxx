@@ -6,7 +6,6 @@
 #include <vector>
 #include <cassert>
 
-#include <odb/database.hxx>
 #include <odb/exceptions.hxx>
 #include <odb/schema-catalog.hxx>
 #include <odb/schema-catalog-impl.hxx>

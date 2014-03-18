@@ -17,6 +17,7 @@
 #endif
 
 #include <odb/forward.hxx> // schema_version, odb::core
+#include <odb/database.hxx>
 
 #include <odb/details/export.hxx>
 #include <odb/details/unused.hxx>
