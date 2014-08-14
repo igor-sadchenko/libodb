@@ -3,11 +3,62 @@
 // license   : GNU GPL v2; see accompanying LICENSE file
 
 #include <cstring> // std::strlen()
+#include <utility> // std::move
+#include <iterator>
 
 #include <odb/transaction.hxx>
 
 namespace odb
 {
+  template <typename T>
+  struct object_pointer_p
+  {
+    typedef details::meta::no result_type;
+    typedef T object_type;
+  };
+
+  template <typename T>
+  struct object_pointer_p<T*>
+  {
+    typedef details::meta::yes result_type;
+    typedef T object_type;
+  };
+
+  template <typename T>
+  struct object_pointer_p<T* const>
+  {
+    typedef details::meta::yes result_type;
+    typedef T object_type;
+  };
+
+  template <typename T, template <typename> class P>
+  struct object_pointer_p<P<T> >
+  {
+    typedef details::meta::yes result_type;
+    typedef T object_type;
+  };
+
+  template <typename T, typename A1, template <typename, typename> class P>
+  struct object_pointer_p<P<T, A1> >
+  {
+    typedef details::meta::yes result_type;
+    typedef T object_type;
+  };
+
+  template <typename T, template <typename> class P>
+  struct object_pointer_p<const P<T> >
+  {
+    typedef details::meta::yes result_type;
+    typedef T object_type;
+  };
+
+  template <typename T, typename A1, template <typename, typename> class P>
+  struct object_pointer_p<const P<T, A1> >
+  {
+    typedef details::meta::yes result_type;
+    typedef T object_type;
+  };
+
   inline database::
   database (database_id id)
       : id_ (id), tracer_ (0), schema_version_seq_ (1)
@@ -163,6 +214,13 @@ namespace odb
   persist (const typename object_traits<T>::pointer_type& pobj)
   {
     return persist_<T, id_common> (pobj);
+  }
+
+  template <typename I>
+  inline void database::
+  persist (I b, I e)
+  {
+    persist_<I, id_common> (b, e);
   }
 
   template <typename T>
@@ -622,6 +680,26 @@ namespace odb
 
   // Implementations (i.e., the *_() functions).
   //
+  template <typename I, database_id DB>
+  inline void database::
+  persist_ (I b, I e)
+  {
+    // Sun CC with non-standard STL does not have iterator_traits.
+    //
+#ifndef _RWSTD_NO_CLASS_PARTIAL_SPEC
+    typedef typename std::iterator_traits<I>::value_type value_type;
+#else
+    // Assume iterator is just a pointer.
+    //
+    typedef typename object_pointer_p<I>::object_type value_type;
+#endif
+
+    typedef object_pointer_p<value_type> test;
+
+    persist_<I, typename test::object_type, id_common> (
+      b, e, typename test::result_type ());
+  }
+
   template <typename T, database_id DB>
   inline typename object_traits<T>::pointer_type database::
   find_ (const typename object_traits<T>::id_type& id)

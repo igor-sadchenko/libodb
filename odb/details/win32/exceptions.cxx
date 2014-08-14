@@ -13,5 +13,11 @@ namespace odb
     {
       return "Win32 API error";
     }
+
+    win32_exception* win32_exception::
+    clone () const
+    {
+      return new win32_exception (*this);
+    }
   }
 }

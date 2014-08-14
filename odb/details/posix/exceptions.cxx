@@ -13,5 +13,11 @@ namespace odb
     {
       return "POSIX API error";
     }
+
+    posix_exception* posix_exception::
+    clone () const
+    {
+      return new posix_exception (*this);
+    }
   }
 }

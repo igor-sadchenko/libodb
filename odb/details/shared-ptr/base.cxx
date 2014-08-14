@@ -3,6 +3,7 @@
 // license   : GNU GPL v2; see accompanying LICENSE file
 
 #include <odb/details/shared-ptr/base.hxx>
+#include <odb/details/shared-ptr/exception.hxx>
 
 using std::size_t;
 
@@ -19,6 +20,12 @@ namespace odb
       return "object is not shared";
     }
 
+    not_shared* not_shared::
+    clone () const
+    {
+      return new not_shared (*this);
+    }
+
     bool shared_base::
     _dec_ref_callback ()
     {
@@ -28,6 +35,20 @@ namespace odb
         r = callback_->zero_counter (callback_->arg);
 
       return r;
+    }
+
+    namespace bits
+    {
+      size_t* locator_common::
+      counter (void* x)
+      {
+        size_t* p (static_cast<size_t*> (x));
+
+        if (*(--p) != 0xDEADBEEF)
+          throw not_shared ();
+
+        return --p;
+      }
     }
   }
 }

@@ -10,7 +10,6 @@
 #include <new>
 #include <cstddef>   // std::size_t
 
-#include <odb/exception.hxx>
 #include <odb/details/export.hxx>
 #include <odb/details/shared-ptr/counter-type.hxx>
 
@@ -45,12 +44,6 @@ namespace odb
 {
   namespace details
   {
-    struct LIBODB_EXPORT not_shared: exception
-    {
-      virtual const char*
-      what () const throw ();
-    };
-
     class LIBODB_EXPORT shared_base
     {
     public:
@@ -67,6 +60,9 @@ namespace odb
 
       std::size_t
       _ref_count () const;
+
+      void*
+      operator new (std::size_t) throw (std::bad_alloc);
 
       void*
       operator new (std::size_t, share) throw (std::bad_alloc);

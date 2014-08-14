@@ -153,6 +153,10 @@ namespace odb
   class result_impl;
   class prepared_query_impl;
 
+  //
+  //
+  struct multiple_exceptions;
+
   // Polymorphism support.
   //
   template <typename R>

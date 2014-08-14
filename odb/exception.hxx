@@ -10,14 +10,19 @@
 #include <exception>
 
 #include <odb/forward.hxx>        // odb::core
+
 #include <odb/details/export.hxx>
+#include <odb/details/shared-ptr/base.hxx>
 
 namespace odb
 {
-  struct LIBODB_EXPORT exception: std::exception
+  struct LIBODB_EXPORT exception: std::exception, details::shared_base
   {
     virtual const char*
     what () const throw () = 0;
+
+    virtual exception*
+    clone () const = 0;
   };
 
   namespace common

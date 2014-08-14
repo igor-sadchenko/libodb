@@ -9,6 +9,7 @@
 
 #include <odb/details/shared-ptr-fwd.hxx>
 #include <odb/details/shared-ptr/base.hxx>
+#include <odb/details/shared-ptr/exception.hxx>
 
 namespace odb
 {

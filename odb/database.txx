@@ -71,6 +71,145 @@ namespace odb
     return object_traits::id (obj);
   }
 
+  template <typename I, typename T, database_id DB>
+  void database::
+  persist_ (I b, I e, details::meta::no /*ptr*/)
+  {
+    // T can be const T while object_type will always be T.
+    //
+    typedef typename object_traits<T>::object_type object_type;
+    typedef object_traits_impl<object_type, DB> object_traits;
+
+    multiple_exceptions mex;
+    try
+    {
+      while (b != e)
+      {
+        std::size_t n (0);
+        T* a[object_traits::batch];
+
+        for (; b != e && n < object_traits::batch; ++n)
+          a[n] = &(*b++);
+
+        object_traits::persist (*this, a, n, &mex);
+
+        if (mex.fatal ())
+          break;
+
+        for (std::size_t i (0); i < n; ++i)
+        {
+          if (mex[i] != 0) // Don't cache objects that have failed.
+            continue;
+
+          mex.current (i); // Set position in case the below code throws.
+
+          typename object_traits::reference_cache_traits::position_type p (
+            object_traits::reference_cache_traits::insert (
+              *this, reference_cache_type<T>::convert (*a[i])));
+
+          object_traits::reference_cache_traits::persist (p);
+        }
+
+        mex.delta (n);
+      }
+    }
+    catch (const odb::exception& ex)
+    {
+      mex.insert (ex, true);
+    }
+
+    if (!mex.empty ())
+    {
+      mex.prepare ();
+      throw mex;
+    }
+  }
+
+  namespace details
+  {
+    template <typename P>
+    struct pointer_copy
+    {
+      const P* ref;
+      P copy;
+
+      void assign (const P& p) {ref = &p;}
+      template <typename P1> void assign (const P1& p1)
+      {
+        // The passed pointer should be the same or implicit-convertible
+        // to the object pointer. This way we make sure the object pointer
+        // does not assume ownership of the passed object.
+        //
+        const P& p (p1);
+
+        copy = p;
+        ref = &copy;
+      }
+    };
+  }
+
+  template <typename I, typename T, database_id DB>
+  void database::
+  persist_ (I b, I e, details::meta::yes /*ptr*/)
+  {
+    // T can be const T while object_type will always be T.
+    //
+    typedef typename object_traits<T>::object_type object_type;
+    typedef typename object_traits<T>::pointer_type pointer_type;
+
+    typedef object_traits_impl<object_type, DB> object_traits;
+
+    multiple_exceptions mex;
+    try
+    {
+      while (b != e)
+      {
+        std::size_t n (0);
+        T* a[object_traits::batch];
+        details::pointer_copy<pointer_type> p[object_traits::batch];
+
+        for (; b != e && n < object_traits::batch; ++n)
+        {
+          p[n].assign (*b++);
+          a[n] = &pointer_traits<pointer_type>::get_ref (*p[n].ref);
+        }
+
+        object_traits::persist (*this, a, n, &mex);
+
+        if (mex.fatal ())
+          break;
+
+        for (std::size_t i (0); i < n; ++i)
+        {
+          if (mex[i] != 0) // Don't cache objects that have failed.
+            continue;
+
+          mex.current (i); // Set position in case the below code throws.
+
+          // Get the canonical object pointer and insert it into object cache.
+          //
+          typename object_traits::pointer_cache_traits::position_type pos (
+            object_traits::pointer_cache_traits::insert (
+              *this, pointer_cache_type<pointer_type>::convert (*p[i].ref)));
+
+          object_traits::pointer_cache_traits::persist (pos);
+        }
+
+        mex.delta (n);
+      }
+    }
+    catch (const odb::exception& ex)
+    {
+      mex.insert (ex, true);
+    }
+
+    if (!mex.empty ())
+    {
+      mex.prepare ();
+      throw mex;
+    }
+  }
+
   template <typename T, database_id DB>
   typename object_traits<T>::pointer_type database::
   load_ (const typename object_traits<T>::id_type& id)

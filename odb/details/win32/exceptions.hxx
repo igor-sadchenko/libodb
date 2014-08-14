@@ -26,6 +26,9 @@ namespace odb
       virtual const char*
       what () const throw ();
 
+      virtual win32_exception*
+      clone () const;
+
     private:
       DWORD code_;
     };

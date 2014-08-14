@@ -64,6 +64,12 @@ namespace odb
     }
 
     inline void* shared_base::
+    operator new (std::size_t n) throw (std::bad_alloc)
+    {
+      return ::operator new (n);
+    }
+
+    inline void* shared_base::
     operator new (std::size_t n, share) throw (std::bad_alloc)
     {
       return ::operator new (n);

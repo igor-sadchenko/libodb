@@ -33,6 +33,7 @@
 #include <odb/details/mutex.hxx>
 #include <odb/details/c-string.hxx>
 #include <odb/details/function-wrapper.hxx>
+#include <odb/details/meta/answer.hxx>
 
 namespace odb
 {
@@ -76,6 +77,12 @@ namespace odb
     template <typename T>
     typename object_traits<T>::id_type
     persist (const typename object_traits<T>::pointer_type& obj_ptr);
+
+    // Bulk persist.
+    //
+    template <typename I>
+    void
+    persist (I begin, I end);
 
     // Load an object. Throw object_not_persistent if not found.
     //
@@ -488,6 +495,18 @@ namespace odb
     template <typename T, database_id DB>
     typename object_traits<T>::id_type
     persist_ (const typename object_traits<T>::pointer_type&);
+
+    template <typename I, database_id DB>
+    void
+    persist_ (I, I);
+
+    template <typename I, typename T, database_id DB>
+    void
+    persist_ (I, I, details::meta::no ptr);
+
+    template <typename I, typename T, database_id DB>
+    void
+    persist_ (I, I, details::meta::yes ptr);
 
     template <typename T, database_id DB>
     typename object_traits<T>::pointer_type

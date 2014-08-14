@@ -24,6 +24,9 @@ namespace odb
       virtual const char*
       what () const throw ();
 
+      virtual posix_exception*
+      clone () const;
+
     private:
       int code_;
     };
