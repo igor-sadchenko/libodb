@@ -213,6 +213,16 @@ namespace odb
     void
     erase (const typename object_traits<T>::pointer_type& obj_ptr);
 
+    // Bulk erase.
+    //
+    template <typename T, typename I>
+    void
+    erase (I id_begin, I id_end);
+
+    template <typename I>
+    void
+    erase (I obj_begin, I obj_end);
+
     // Erase multiple objects matching a query predicate.
     //
     template <typename T>

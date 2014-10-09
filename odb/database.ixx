@@ -473,6 +473,13 @@ namespace odb
     erase_<T, id_common> (pobj);
   }
 
+  template <typename T, typename I>
+  inline void database::
+  erase (I idb, I ide)
+  {
+    erase_<T, I, id_common> (idb, ide);
+  }
+
   template <typename T>
   inline unsigned long long database::
   erase_query ()

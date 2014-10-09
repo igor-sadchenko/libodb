@@ -279,6 +279,51 @@ namespace odb
       throw section_not_in_object ();
   }
 
+  template <typename T, typename I, database_id DB>
+  void database::
+  erase_ (I b, I e)
+  {
+    // T is explicitly specified by the caller, so assume it is object type.
+    //
+    typedef T object_type;
+    typedef object_traits_impl<object_type, DB> object_traits;
+    typedef typename object_traits::id_type id_type;
+
+    multiple_exceptions mex;
+    try
+    {
+      while (b != e)
+      {
+        std::size_t n (0);
+        const id_type* a[object_traits::batch];
+
+        for (; b != e && n < object_traits::batch; ++n)
+          // Compiler error pointing here? Perhaps the object id type
+          // and the sequence element type don't match?
+          //
+          a[n] = &(*b++);
+
+        object_traits::erase (*this, a, n, &mex);
+
+        if (mex.fatal ())
+          break;
+
+        mex.delta (n);
+      }
+    }
+    catch (const odb::exception& ex)
+    {
+      mex.insert (ex, true);
+    }
+
+    if (!mex.empty ())
+    {
+      mex.prepare ();
+      throw mex;
+    }
+  }
+
+
   template <typename T, database_id DB>
   struct database::query_<T, DB, class_object>
   {
