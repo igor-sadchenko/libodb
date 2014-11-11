@@ -7,56 +7,68 @@
 #include <iterator>
 
 #include <odb/transaction.hxx>
+#include <odb/pointer-traits.hxx>
 
 namespace odb
 {
   template <typename T>
-  struct object_pointer_p
+  struct object_pointer_traits
   {
     typedef details::meta::no result_type;
     typedef T object_type;
+    static const T& get_ref (const T& x) {return x;}
   };
 
   template <typename T>
-  struct object_pointer_p<T*>
+  struct object_pointer_traits<T*>
   {
     typedef details::meta::yes result_type;
     typedef T object_type;
+    static const T& get_ref (const T* p) {return *p;}
   };
 
   template <typename T>
-  struct object_pointer_p<T* const>
+  struct object_pointer_traits<T* const>
   {
     typedef details::meta::yes result_type;
     typedef T object_type;
+    static const T& get_ref (const T* p) {return *p;}
   };
 
   template <typename T, template <typename> class P>
-  struct object_pointer_p<P<T> >
+  struct object_pointer_traits<P<T> >
   {
     typedef details::meta::yes result_type;
     typedef T object_type;
+    static const T& get_ref (const P<T>& p) {
+      return pointer_traits<P<T> >::get_ref (p);}
   };
 
   template <typename T, typename A1, template <typename, typename> class P>
-  struct object_pointer_p<P<T, A1> >
+  struct object_pointer_traits<P<T, A1> >
   {
     typedef details::meta::yes result_type;
     typedef T object_type;
+    static const T& get_ref (const P<T, A1>& p) {
+      return pointer_traits<P<T, A1> >::get_ref (p);}
   };
 
   template <typename T, template <typename> class P>
-  struct object_pointer_p<const P<T> >
+  struct object_pointer_traits<const P<T> >
   {
     typedef details::meta::yes result_type;
     typedef T object_type;
+    static const T& get_ref (const P<T>& p) {
+      return pointer_traits<P<T> >::get_ref (p);}
   };
 
   template <typename T, typename A1, template <typename, typename> class P>
-  struct object_pointer_p<const P<T, A1> >
+  struct object_pointer_traits<const P<T, A1> >
   {
     typedef details::meta::yes result_type;
     typedef T object_type;
+    static const T& get_ref (const P<T, A1>& p) {
+      return pointer_traits<P<T, A1> >::get_ref (p);}
   };
 
   inline database::
@@ -477,7 +489,14 @@ namespace odb
   inline void database::
   erase (I idb, I ide)
   {
-    erase_<T, I, id_common> (idb, ide);
+    erase_id_<I, T, id_common> (idb, ide);
+  }
+
+  template <typename I>
+  inline void database::
+  erase (I ob, I oe)
+  {
+    erase_object_<I, id_common> (ob, oe);
   }
 
   template <typename T>
@@ -698,13 +717,13 @@ namespace odb
 #else
     // Assume iterator is just a pointer.
     //
-    typedef typename object_pointer_p<I>::object_type value_type;
+    typedef typename object_pointer_traits<I>::object_type value_type;
 #endif
 
-    typedef object_pointer_p<value_type> test;
+    typedef object_pointer_traits<value_type> opt;
 
-    persist_<I, typename test::object_type, id_common> (
-      b, e, typename test::result_type ());
+    persist_<I, typename opt::object_type, id_common> (
+      b, e, typename opt::result_type ());
   }
 
   template <typename T, database_id DB>

@@ -9,7 +9,8 @@
 
 #include <set>
 #include <string>
-#include <cstddef> // std::size_t
+#include <cstddef>  // std::size_t
+#include <typeinfo>
 
 #include <odb/forward.hxx>    // schema_version, odb::core
 #include <odb/exception.hxx>
@@ -290,25 +291,33 @@ namespace odb
   {
     struct LIBODB_EXPORT value_type
     {
-      value_type (std::size_t p, const odb::exception& e)
-        : p_ (p), e_ (e.clone ()) {}
-
-      value_type (std::size_t p, details::shared_ptr<odb::exception> e)
-        : p_ (p), e_ (e) {}
-
       std::size_t
       position () const {return p_;}
+
+      // If true, then this means that some positions in the batch have
+      // triggered the exception but it is not possible, due to the
+      // limitations of the underlying database API, to discern exactly
+      // which ones. As a result, all the positions in the batch are
+      // marked as "maybe failed".
+      //
+      bool
+      maybe () const {return m_;}
 
       const odb::exception&
       exception () const {return *e_;}
 
+      // Implementation details.
+      //
     public:
+      value_type (std::size_t p,
+                  bool maybe,
+                  details::shared_ptr<odb::exception> e)
+          : m_ (maybe), p_ (p), e_ (e) {}
+
       value_type (std::size_t p): p_ (p) {} // "Key" for set lookup.
 
-      details::shared_ptr<odb::exception>
-      exception_ptr () const {return e_;}
-
     private:
+      bool m_;
       std::size_t p_;
       details::shared_ptr<odb::exception> e_;
     };
@@ -339,24 +348,32 @@ namespace odb
     // Lookup.
     //
   public:
-    const odb::exception*
+    // Return NULL if the element at this position has no exception. Note
+    // that the returned value is value_type* and not odb::exception* in
+    // order to provide access to maybe(); see value_type::maybe() for
+    // details.
+    //
+    const value_type*
     operator[] (std::size_t p) const
     {
       return set_.empty () ? 0 : lookup (p);
     }
 
-    // Size and direct set access.
+    // Severity, failed and attempt counts.
     //
   public:
+    // Return the number of elements for which the operation has been
+    // attempted.
+    //
     std::size_t
-    size () const {return set_.size ();}
+    attempted () const {return attempted_;}
 
-    const set_type&
-    set () const {return set_;}
-
-    // Severity and attempts.
+    // Return the number of positions for which the operation has failed.
+    // Note that this count includes the maybe failed positions.
     //
-  public:
+    std::size_t
+    failed () const {return set_.size ();}
+
     // If fatal() returns true, then (some of) the exceptions were fatal.
     // In this case, even for elements that were processed but did not
     // cause the exception, no attempts were made to complete the bulk
@@ -378,12 +395,6 @@ namespace odb
     void
     fatal (bool f) {fatal_ = fatal_ || f;}
 
-    // Return the number of elements for which the operation has been
-    // attempted.
-    //
-    std::size_t
-    attempted () const {return attempted_;}
-
     // odb::exception interface.
     //
   public:
@@ -393,11 +404,25 @@ namespace odb
     virtual multiple_exceptions*
     clone () const;
 
+    // Direct set access.
+    //
+  public:
+    const set_type&
+    set () const {return set_;}
+
     // Implementation details.
     //
   public:
     ~multiple_exceptions () throw ();
-    multiple_exceptions (): fatal_ (false), delta_ (0), current_ (0) {}
+
+    // All instances of the common exception must be equal since we are
+    // going to create and share just one.
+    //
+    multiple_exceptions (const std::type_info& common_exception_ti)
+        : common_exception_ti_ (common_exception_ti),
+          fatal_ (false),
+          delta_ (0),
+          current_ (0) {}
 
     // Set the attempted count as (delta + n).
     //
@@ -419,7 +444,16 @@ namespace odb
     current (std::size_t c) {current_ = c;}
 
     void
-    insert (std::size_t p, const odb::exception& e, bool fatal = false);
+    insert (std::size_t p,
+            bool maybe,
+            const odb::exception& e,
+            bool fatal = false);
+
+    void
+    insert (std::size_t p, const odb::exception& e, bool fatal = false)
+    {
+      insert (p, false, e, fatal);
+    }
 
     void
     insert (const odb::exception& e, bool fatal = false)
@@ -434,15 +468,18 @@ namespace odb
     prepare ();
 
   private:
-    const odb::exception*
-    lookup (std::size_t) const;
+    const value_type*
+    lookup (std::size_t p) const;
 
   private:
+    const std::type_info& common_exception_ti_;
+    details::shared_ptr<odb::exception> common_exception_;
+
     set_type set_;
     bool fatal_;
     std::size_t attempted_;
-    std::size_t delta_; // Position of the batch.
-    std::size_t current_; // Position in the batch.
+    std::size_t delta_;     // Position of the batch.
+    std::size_t current_;   // Position in the batch.
     std::string what_;
   };
 

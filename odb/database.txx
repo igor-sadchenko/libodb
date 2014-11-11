@@ -86,7 +86,7 @@ namespace odb
       while (b != e)
       {
         std::size_t n (0);
-        T* a[object_traits::batch];
+        object_type* a[object_traits::batch];
 
         for (; b != e && n < object_traits::batch; ++n)
           a[n] = &(*b++);
@@ -159,13 +159,13 @@ namespace odb
 
     typedef object_traits_impl<object_type, DB> object_traits;
 
-    multiple_exceptions mex;
+    multiple_exceptions mex (typeid (object_already_persistent));
     try
     {
       while (b != e)
       {
         std::size_t n (0);
-        T* a[object_traits::batch];
+        object_type* a[object_traits::batch];
         details::pointer_copy<pointer_type> p[object_traits::batch];
 
         for (; b != e && n < object_traits::batch; ++n)
@@ -279,9 +279,9 @@ namespace odb
       throw section_not_in_object ();
   }
 
-  template <typename T, typename I, database_id DB>
+  template <typename I, typename T, database_id DB>
   void database::
-  erase_ (I b, I e)
+  erase_id_ (I b, I e)
   {
     // T is explicitly specified by the caller, so assume it is object type.
     //
@@ -289,7 +289,7 @@ namespace odb
     typedef object_traits_impl<object_type, DB> object_traits;
     typedef typename object_traits::id_type id_type;
 
-    multiple_exceptions mex;
+    multiple_exceptions mex (typeid (object_not_persistent));
     try
     {
       while (b != e)
@@ -323,6 +323,60 @@ namespace odb
     }
   }
 
+  template <typename I, database_id DB>
+  void database::
+  erase_object_ (I b, I e)
+  {
+    // Sun CC with non-standard STL does not have iterator_traits.
+    //
+#ifndef _RWSTD_NO_CLASS_PARTIAL_SPEC
+    typedef typename std::iterator_traits<I>::value_type value_type;
+#else
+    // Assume iterator is just a pointer.
+    //
+    typedef typename object_pointer_traits<I>::object_type value_type;
+#endif
+
+    // object_pointer_traits<T>::object_type can be const.
+    //
+    typedef object_pointer_traits<value_type> opt;
+
+    typedef
+    typename object_traits<typename opt::object_type>::object_type
+    object_type;
+
+    typedef object_traits_impl<object_type, DB> object_traits;
+
+    multiple_exceptions mex (typeid (object_not_persistent));
+    try
+    {
+      while (b != e)
+      {
+        std::size_t n (0);
+        const object_type* a[object_traits::batch];
+
+        for (; b != e && n < object_traits::batch; ++n)
+          a[n] = &opt::get_ref (*b++);
+
+        object_traits::erase (*this, a, n, &mex);
+
+        if (mex.fatal ())
+          break;
+
+        mex.delta (n);
+      }
+    }
+    catch (const odb::exception& ex)
+    {
+      mex.insert (ex, true);
+    }
+
+    if (!mex.empty ())
+    {
+      mex.prepare ();
+      throw mex;
+    }
+  }
 
   template <typename T, database_id DB>
   struct database::query_<T, DB, class_object>

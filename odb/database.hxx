@@ -566,6 +566,14 @@ namespace odb
     void
     erase_ (const typename object_traits<T>::pointer_type&);
 
+    template <typename I, typename T, database_id DB>
+    void
+    erase_id_ (I, I);
+
+    template <typename I, database_id DB>
+    void
+    erase_object_ (I, I);
+
     template <typename T, database_id DB, typename Q>
     typename object_traits<T>::pointer_type
     query_one_ (const Q&);

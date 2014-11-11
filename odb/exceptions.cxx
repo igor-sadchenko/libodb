@@ -4,6 +4,7 @@
 
 #include <cstring> // std::strlen
 #include <sstream>
+#include <cassert>
 
 #include <odb/exceptions.hxx>
 
@@ -256,7 +257,7 @@ namespace odb
   }
 
   unknown_schema::
-  unknown_schema (const std::string& name)
+  unknown_schema (const string& name)
       : name_ (name)
   {
     what_ = "unknown database schema '";
@@ -338,31 +339,31 @@ namespace odb
   ~multiple_exceptions () throw () {}
 
   void multiple_exceptions::
-  insert (size_t p, const odb::exception& e, bool fatal)
+  insert (size_t p, bool maybe, const odb::exception& e, bool fatal)
   {
-    if (const multiple_exceptions* me =
-        dynamic_cast<const multiple_exceptions*> (&e))
-    {
-      // Multipe exceptions in the batch. Splice them in.
-      //
-      for (iterator i (me->begin ()); i != me->end (); ++i)
-        set_.insert (
-          value_type (delta_ + i->position (), i->exception_ptr ()));
+    details::shared_ptr<odb::exception> pe;
 
-      fatal_ = fatal_ || me->fatal () || fatal;
-    }
+    if (common_exception_ti_ != typeid (e))
+      pe.reset (e.clone ());
     else
     {
-      set_.insert (value_type (delta_ + p, e));
-      fatal_ = fatal_ || fatal;
+      if (common_exception_ == 0)
+        common_exception_.reset (e.clone ());
+
+      pe = common_exception_;
     }
+
+    set_.insert (value_type (delta_ + p, maybe, pe));
+    fatal_ = fatal_ || fatal;
   }
 
-  const odb::exception* multiple_exceptions::
+  const multiple_exceptions::value_type* multiple_exceptions::
   lookup (size_t p) const
   {
-    iterator i (set_.find (value_type (p + delta_)));
-    return i == set_.end () ? 0 : &i->exception ();
+    p += delta_; // Called while populating multiple_exceptions.
+
+    iterator i (set_.find (value_type (p)));
+    return i == set_.end () ? 0 : &*i;
   }
 
   void multiple_exceptions::
@@ -370,22 +371,49 @@ namespace odb
   {
     current_ = 0;
     delta_ = 0;
+    common_exception_.reset ();
 
     ostringstream os;
     os << "multiple exceptions, "
        << attempted_ << " element" << (attempted_ != 1 ? "s" : "") <<
       " attempted, "
-       << size () << " failed"
+       << failed () << " failed"
        << (fatal_ ? ", fatal" : "") << ":";
 
     bool nl (true);
-    for (iterator i (begin ()); i != end (); ++i)
+    for (iterator i (begin ()); i != end ();)
     {
-      const char* w (i->exception ().what ());
+      size_t p (i->position ());
+      const odb::exception& e (i->exception ());
 
-      os << (nl ? "\n" : "")
-         << '[' << i->position () << "] " << w;
+      os << (nl ? "\n" : "");
 
+      if (!i->maybe ())
+      {
+        os << '[' << p << ']';
+        ++i;
+      }
+      else
+      {
+        // In this case we will normally have a large number of maybe
+        // failures in a row (usually the whole batch). So let's try
+        // to represent them all as a single range.
+        //
+        size_t n (0);
+        for (++i; i != end () && i->maybe (); ++i)
+        {
+          assert (&e == &i->exception ()); // The same common exception.
+          n++;
+        }
+
+        if (n == 0)
+          os << '[' << p << ']';
+        else
+          os << '[' << p << '-' << (p + n) << "] (some)";
+      }
+
+      const char* w (e.what ());
+      os << ' ' << w;
       nl = (w[strlen (w) - 1] != '\n');
     }
 
