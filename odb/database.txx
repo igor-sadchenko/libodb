@@ -259,6 +259,61 @@ namespace odb
       throw object_not_persistent ();
   }
 
+  template <typename I, database_id DB>
+  void database::
+  update_ (I b, I e)
+  {
+    // Sun CC with non-standard STL does not have iterator_traits.
+    //
+#ifndef _RWSTD_NO_CLASS_PARTIAL_SPEC
+    typedef typename std::iterator_traits<I>::value_type value_type;
+#else
+    // Assume iterator is just a pointer.
+    //
+    typedef typename object_pointer_traits<I>::object_type value_type;
+#endif
+
+    // object_pointer_traits<T>::object_type can be const.
+    //
+    typedef object_pointer_traits<value_type> opt;
+
+    typedef
+    typename object_traits<typename opt::object_type>::object_type
+    object_type;
+
+    typedef object_traits_impl<object_type, DB> object_traits;
+
+    multiple_exceptions mex (typeid (object_not_persistent));
+    try
+    {
+      while (b != e)
+      {
+        std::size_t n (0);
+        const object_type* a[object_traits::batch];
+
+        for (; b != e && n < object_traits::batch; ++n)
+          a[n] = &opt::get_ref (*b++);
+
+        object_traits::update (*this, a, n, &mex);
+
+        if (mex.fatal ())
+          break;
+
+        mex.delta (n);
+      }
+    }
+    catch (const odb::exception& ex)
+    {
+      mex.insert (ex, true);
+    }
+
+    if (!mex.empty ())
+    {
+      mex.prepare ();
+      throw mex;
+    }
+  }
+
   template <typename T, database_id DB>
   void database::
   update_ (const T& obj, const section& s)

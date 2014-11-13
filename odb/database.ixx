@@ -396,6 +396,13 @@ namespace odb
     update_<T, id_common> (pobj);
   }
 
+  template <typename I>
+  inline void database::
+  update (I b, I e)
+  {
+    update_<I, id_common> (b, e);
+  }
+
   template <typename T>
   inline void database::
   update (const T& obj, const section& s)
