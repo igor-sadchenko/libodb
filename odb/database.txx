@@ -80,7 +80,7 @@ namespace odb
     typedef typename object_traits<T>::object_type object_type;
     typedef object_traits_impl<object_type, DB> object_traits;
 
-    multiple_exceptions mex;
+    multiple_exceptions mex (typeid (object_already_persistent));
     try
     {
       while (b != e)
