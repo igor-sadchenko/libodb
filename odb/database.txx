@@ -91,7 +91,7 @@ namespace odb
         for (; b != e && n < object_traits::batch; ++n)
           a[n] = &(*b++);
 
-        object_traits::persist (*this, a, n, &mex);
+        object_traits::persist (*this, a, n, mex);
 
         if (mex.fatal ())
           break;
@@ -174,7 +174,7 @@ namespace odb
           a[n] = &pointer_traits<pointer_type>::get_ref (*p[n].ref);
         }
 
-        object_traits::persist (*this, a, n, &mex);
+        object_traits::persist (*this, a, n, mex);
 
         if (mex.fatal ())
           break;
@@ -294,7 +294,7 @@ namespace odb
         for (; b != e && n < object_traits::batch; ++n)
           a[n] = &opt::get_ref (*b++);
 
-        object_traits::update (*this, a, n, &mex);
+        object_traits::update (*this, a, n, mex);
 
         if (mex.fatal ())
           break;
@@ -358,7 +358,7 @@ namespace odb
           //
           a[n] = &(*b++);
 
-        object_traits::erase (*this, a, n, &mex);
+        object_traits::erase (*this, a, n, mex);
 
         if (mex.fatal ())
           break;
@@ -413,7 +413,7 @@ namespace odb
         for (; b != e && n < object_traits::batch; ++n)
           a[n] = &opt::get_ref (*b++);
 
-        object_traits::erase (*this, a, n, &mex);
+        object_traits::erase (*this, a, n, mex);
 
         if (mex.fatal ())
           break;
