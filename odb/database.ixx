@@ -162,6 +162,13 @@ namespace odb
 
   template <typename T>
   inline typename object_traits<T>::id_type database::
+  persist (const T& obj)
+  {
+    return persist_<const T, id_common> (obj);
+  }
+
+  template <typename T>
+  inline typename object_traits<T>::id_type database::
   persist (T* p)
   {
     typedef typename object_traits<T>::pointer_type object_pointer;

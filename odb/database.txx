@@ -71,6 +71,10 @@ namespace odb
     return object_traits::id (obj);
   }
 
+  template <typename T, bool = object_traits<T>::auto_id> struct persist_type;
+  template <typename T> struct persist_type<T, true> {typedef T type;};
+  template <typename T> struct persist_type<T, false> {typedef const T type;};
+
   template <typename I, typename T, database_id DB>
   void database::
   persist_ (I b, I e, details::meta::no /*ptr*/)
@@ -86,12 +90,19 @@ namespace odb
       while (b != e)
       {
         std::size_t n (0);
-        object_type* a[object_traits::batch];
+        T* a[object_traits::batch]; // T instead of persist_type for cache.
 
         for (; b != e && n < object_traits::batch; ++n)
-          a[n] = &(*b++);
+        {
+          typename persist_type<object_type>::type* p (&(*b++));
+          a[n] = const_cast<T*> (p);
+        }
 
-        object_traits::persist (*this, a, n, mex);
+        object_traits::persist (
+          *this,
+          const_cast<typename persist_type<object_type>::type**> (a),
+          n,
+          mex);
 
         if (mex.fatal ())
           break;
@@ -125,28 +136,25 @@ namespace odb
     }
   }
 
-  namespace details
+  template <typename P>
+  struct pointer_copy
   {
-    template <typename P>
-    struct pointer_copy
+    const P* ref;
+    P copy;
+
+    void assign (const P& p) {ref = &p;}
+    template <typename P1> void assign (const P1& p1)
     {
-      const P* ref;
-      P copy;
+      // The passed pointer should be the same or implicit-convertible
+      // to the object pointer. This way we make sure the object pointer
+      // does not assume ownership of the passed object.
+      //
+      const P& p (p1);
 
-      void assign (const P& p) {ref = &p;}
-      template <typename P1> void assign (const P1& p1)
-      {
-        // The passed pointer should be the same or implicit-convertible
-        // to the object pointer. This way we make sure the object pointer
-        // does not assume ownership of the passed object.
-        //
-        const P& p (p1);
-
-        copy = p;
-        ref = &copy;
-      }
-    };
-  }
+      copy = p;
+      ref = &copy;
+    }
+  };
 
   template <typename I, typename T, database_id DB>
   void database::
@@ -165,8 +173,8 @@ namespace odb
       while (b != e)
       {
         std::size_t n (0);
-        object_type* a[object_traits::batch];
-        details::pointer_copy<pointer_type> p[object_traits::batch];
+        typename persist_type<object_type>::type* a[object_traits::batch];
+        pointer_copy<pointer_type> p[object_traits::batch];
 
         for (; b != e && n < object_traits::batch; ++n)
         {
