@@ -87,7 +87,7 @@ namespace odb
     //
     template <typename I>
     void
-    persist (I begin, I end);
+    persist (I begin, I end, bool continue_failed = true);
 
     // Load an object. Throw object_not_persistent if not found.
     //
@@ -180,7 +180,7 @@ namespace odb
     //
     template <typename I>
     void
-    update (I begin, I end);
+    update (I begin, I end, bool continue_failed = true);
 
     // Update a section of an object. Throws section_not_loaded exception
     // if section is not loaded. Note also that this function does not
@@ -229,14 +229,14 @@ namespace odb
     //
     template <typename T, typename I>
     void
-    erase (I id_begin, I id_end);
+    erase (I id_begin, I id_end, bool continue_failed = true);
 
     // Can be a range of references or pointers (including smart pointers)
     // to objects.
     //
     template <typename I>
     void
-    erase (I obj_begin, I obj_end);
+    erase (I obj_begin, I obj_end, bool continue_failed = true);
 
     // Erase multiple objects matching a query predicate.
     //
@@ -523,15 +523,15 @@ namespace odb
 
     template <typename I, database_id DB>
     void
-    persist_ (I, I);
+    persist_ (I, I, bool);
 
     template <typename I, typename T, database_id DB>
     void
-    persist_ (I, I, details::meta::no ptr);
+    persist_ (I, I, bool, details::meta::no ptr);
 
     template <typename I, typename T, database_id DB>
     void
-    persist_ (I, I, details::meta::yes ptr);
+    persist_ (I, I, bool, details::meta::yes ptr);
 
     template <typename T, database_id DB>
     typename object_traits<T>::pointer_type
@@ -567,7 +567,7 @@ namespace odb
 
     template <typename I, database_id DB>
     void
-    update_ (I, I);
+    update_ (I, I, bool);
 
     template <typename T, database_id DB>
     void
@@ -587,11 +587,11 @@ namespace odb
 
     template <typename I, typename T, database_id DB>
     void
-    erase_id_ (I, I);
+    erase_id_ (I, I, bool);
 
     template <typename I, database_id DB>
     void
-    erase_object_ (I, I);
+    erase_object_ (I, I, bool);
 
     template <typename T, database_id DB, typename Q>
     typename object_traits<T>::pointer_type

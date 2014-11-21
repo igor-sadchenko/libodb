@@ -77,7 +77,7 @@ namespace odb
 
   template <typename I, typename T, database_id DB>
   void database::
-  persist_ (I b, I e, details::meta::no /*ptr*/)
+  persist_ (I b, I e, bool cont, details::meta::no /*ptr*/)
   {
     // T can be const T while object_type will always be T.
     //
@@ -87,7 +87,7 @@ namespace odb
     multiple_exceptions mex (typeid (object_already_persistent));
     try
     {
-      while (b != e)
+      while (b != e && (cont || mex.empty ()))
       {
         std::size_t n (0);
         T* a[object_traits::batch]; // T instead of persist_type for cache.
@@ -158,7 +158,7 @@ namespace odb
 
   template <typename I, typename T, database_id DB>
   void database::
-  persist_ (I b, I e, details::meta::yes /*ptr*/)
+  persist_ (I b, I e, bool cont, details::meta::yes /*ptr*/)
   {
     // T can be const T while object_type will always be T.
     //
@@ -170,7 +170,7 @@ namespace odb
     multiple_exceptions mex (typeid (object_already_persistent));
     try
     {
-      while (b != e)
+      while (b != e && (cont || mex.empty ()))
       {
         std::size_t n (0);
         typename persist_type<object_type>::type* a[object_traits::batch];
@@ -269,7 +269,7 @@ namespace odb
 
   template <typename I, database_id DB>
   void database::
-  update_ (I b, I e)
+  update_ (I b, I e, bool cont)
   {
     // Sun CC with non-standard STL does not have iterator_traits.
     //
@@ -294,7 +294,7 @@ namespace odb
     multiple_exceptions mex (typeid (object_not_persistent));
     try
     {
-      while (b != e)
+      while (b != e && (cont || mex.empty ()))
       {
         std::size_t n (0);
         const object_type* a[object_traits::batch];
@@ -344,7 +344,7 @@ namespace odb
 
   template <typename I, typename T, database_id DB>
   void database::
-  erase_id_ (I b, I e)
+  erase_id_ (I b, I e, bool cont)
   {
     // T is explicitly specified by the caller, so assume it is object type.
     //
@@ -355,7 +355,7 @@ namespace odb
     multiple_exceptions mex (typeid (object_not_persistent));
     try
     {
-      while (b != e)
+      while (b != e && (cont || mex.empty ()))
       {
         std::size_t n (0);
         const id_type* a[object_traits::batch];
@@ -388,7 +388,7 @@ namespace odb
 
   template <typename I, database_id DB>
   void database::
-  erase_object_ (I b, I e)
+  erase_object_ (I b, I e, bool cont)
   {
     // Sun CC with non-standard STL does not have iterator_traits.
     //
@@ -413,7 +413,7 @@ namespace odb
     multiple_exceptions mex (typeid (object_not_persistent));
     try
     {
-      while (b != e)
+      while (b != e && (cont || mex.empty ()))
       {
         std::size_t n (0);
         const object_type* a[object_traits::batch];

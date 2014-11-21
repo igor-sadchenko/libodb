@@ -237,9 +237,9 @@ namespace odb
 
   template <typename I>
   inline void database::
-  persist (I b, I e)
+  persist (I b, I e, bool cont)
   {
-    persist_<I, id_common> (b, e);
+    persist_<I, id_common> (b, e, cont);
   }
 
   template <typename T>
@@ -405,9 +405,9 @@ namespace odb
 
   template <typename I>
   inline void database::
-  update (I b, I e)
+  update (I b, I e, bool cont)
   {
-    update_<I, id_common> (b, e);
+    update_<I, id_common> (b, e, cont);
   }
 
   template <typename T>
@@ -501,16 +501,16 @@ namespace odb
 
   template <typename T, typename I>
   inline void database::
-  erase (I idb, I ide)
+  erase (I idb, I ide, bool cont)
   {
-    erase_id_<I, T, id_common> (idb, ide);
+    erase_id_<I, T, id_common> (idb, ide, cont);
   }
 
   template <typename I>
   inline void database::
-  erase (I ob, I oe)
+  erase (I ob, I oe, bool cont)
   {
-    erase_object_<I, id_common> (ob, oe);
+    erase_object_<I, id_common> (ob, oe, cont);
   }
 
   template <typename T>
@@ -722,7 +722,7 @@ namespace odb
   //
   template <typename I, database_id DB>
   inline void database::
-  persist_ (I b, I e)
+  persist_ (I b, I e, bool cont)
   {
     // Sun CC with non-standard STL does not have iterator_traits.
     //
@@ -737,7 +737,7 @@ namespace odb
     typedef object_pointer_traits<value_type> opt;
 
     persist_<I, typename opt::object_type, id_common> (
-      b, e, typename opt::result_type ());
+      b, e, cont, typename opt::result_type ());
   }
 
   template <typename T, database_id DB>
