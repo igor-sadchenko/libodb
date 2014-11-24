@@ -94,10 +94,17 @@ namespace odb
 
         for (; b != e && n < object_traits::batch; ++n)
         {
+          // Compiler error pointing here? Perhaps the passed range is
+          // of const objects?
+          //
           typename persist_type<object_type>::type* p (&(*b++));
+
           a[n] = const_cast<T*> (p);
         }
 
+        // Compiler error pointing here? Perhaps the object or the
+        // database does not support bulk operations?
+        //
         object_traits::persist (
           *this,
           const_cast<typename persist_type<object_type>::type**> (a),
@@ -182,6 +189,9 @@ namespace odb
           a[n] = &pointer_traits<pointer_type>::get_ref (*p[n].ref);
         }
 
+        // Compiler error pointing here? Perhaps the object or the
+        // database does not support bulk operations?
+        //
         object_traits::persist (*this, a, n, mex);
 
         if (mex.fatal ())
@@ -302,6 +312,9 @@ namespace odb
         for (; b != e && n < object_traits::batch; ++n)
           a[n] = &opt::get_ref (*b++);
 
+        // Compiler error pointing here? Perhaps the object or the
+        // database does not support bulk operations?
+        //
         object_traits::update (*this, a, n, mex);
 
         if (mex.fatal ())
@@ -362,10 +375,13 @@ namespace odb
 
         for (; b != e && n < object_traits::batch; ++n)
           // Compiler error pointing here? Perhaps the object id type
-          // and the sequence element type don't match?
+          // and the range element type don't match?
           //
           a[n] = &(*b++);
 
+        // Compiler error pointing here? Perhaps the object or the
+        // database does not support bulk operations?
+        //
         object_traits::erase (*this, a, n, mex);
 
         if (mex.fatal ())
@@ -421,6 +437,9 @@ namespace odb
         for (; b != e && n < object_traits::batch; ++n)
           a[n] = &opt::get_ref (*b++);
 
+        // Compiler error pointing here? Perhaps the object or the
+        // database does not support bulk operations?
+        //
         object_traits::erase (*this, a, n, mex);
 
         if (mex.fatal ())
